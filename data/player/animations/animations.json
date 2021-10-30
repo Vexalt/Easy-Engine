@@ -1,0 +1,10 @@
+{
+    "run":{
+        "path":"data/player/animations/run",
+        "time":[7,7]
+    },
+    "idle":{
+        "path":"data/player/animations/idle",
+        "time":[7,7,40]
+    }
+}
