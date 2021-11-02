@@ -1,4 +1,7 @@
 {
-    "name":"plant",
-    "collision":false
+    "plant":{
+        "collision":false,
+        "path":"plant.png"
+    }
+
 }

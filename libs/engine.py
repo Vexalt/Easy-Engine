@@ -4,36 +4,38 @@ import pygame
 from json import load
 from os import listdir
 
-def load_blockstates():
+
+def load_images(TILE_SIZE):
     tile_blockstates = {}
+    images = {}
     for json_file in listdir("data/blockstates"):
         json = open("data/blockstates/"+json_file)
         json_text = load(json)
         json.close()
 
-        tile_blockstates[json_text["name"]] = json_text
+        for tile in json_text.keys():
+            if not "collision_rect" in json_text[tile]:
+                json_text[tile]["collision_rect"] = [TILE_SIZE,TILE_SIZE,0,0]
+            tile_blockstates[tile] = json_text[tile]
+            images[tile] = json_text[tile]["path"]
 
-    return tile_blockstates
-
-
-def load_images(TILE_SIZE):
     tile_database = {}
+    for image_name in images.keys():
+        if images[image_name] is not None:
+            original_image = pygame.transform.smoothscale(pygame.image.load("data/images/"+images[image_name]).convert_alpha(),(TILE_SIZE,TILE_SIZE))
+            background = pygame.Surface((TILE_SIZE,TILE_SIZE))
+            background.fill((93, 173, 226))
+            background.blit(original_image,(0,0))
 
-    images = listdir("data/images")
-    for image in images:
-        original_image = pygame.transform.smoothscale(pygame.image.load("data/images/"+image).convert_alpha(),(TILE_SIZE,TILE_SIZE))
-        background = pygame.Surface((TILE_SIZE,TILE_SIZE))
-        background.fill((93, 173, 226))
-        background.blit(original_image,(0,0))
+            tile_database[image_name] = background.convert()
 
-        tile_database[image.split(".png")[0]] = background.convert()
+        else:
+            #The load Function an invisible "air" block
+            temp_img =pygame.Surface((TILE_SIZE,TILE_SIZE))
+            temp_img.fill((93, 173, 226))
+            tile_database[image_name] = temp_img.convert()
 
-    #The load Function create the "air" block
-    temp_img =pygame.Surface((TILE_SIZE,TILE_SIZE))
-    temp_img.fill((93, 173, 226))
-    tile_database["air"] = temp_img
-
-    return tile_database
+    return tile_database,tile_blockstates
 
 def collision_test(rect,tiles):
     hit_list = []

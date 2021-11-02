@@ -1,4 +1,8 @@
 {
-    "name":"torch",
-    "collision":false
+    "torch":{
+        "collision":true,
+        "collision_rect":[5,17,7,3],
+        "path":"torch.png"
+    }
+
 }

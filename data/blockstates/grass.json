@@ -1,12 +1,7 @@
 {
-    "name":"grass",
-    "collision":true,
-    "components":{
-        "grass_border_left":{
-            "path":"grass_border_left.png"
-        },
-        "grass_border_right":{
-            "path":"grass_border_right.png"
-        }
+    "grass":{
+        "collision":true,
+        "path":"grass.png"
     }
+
 }

@@ -1,4 +1,7 @@
 {
-    "name":"dirt",
-    "collision":true
+    "dirt":{
+        "collision":true,
+        "path":"dirt.png"
+    }
+
 }

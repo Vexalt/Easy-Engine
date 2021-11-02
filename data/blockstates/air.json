@@ -1,4 +1,7 @@
 {
-    "name":"air",
-    "collision":false
+    "air":{
+        "collision":false,
+        "path":null
+    }
+
 }
