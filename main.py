@@ -49,10 +49,10 @@ true_scroll = [0,0]
 
 #Setup Map Dict and Chunk Size
 game_map = {}
-CHUNK_SIZE = 6
+CHUNK_SIZE = 8
 
 #Load All tile from data/blockstates
-TILE_SIZE = 20
+TILE_SIZE = 16
 tile_database,tile_blockstates = e.load_images(TILE_SIZE)
 
 #Create The Light Value used for render light with animation
@@ -64,6 +64,8 @@ myfont = pygame.font.Font('data/fonts/font.ttf', 10)
 ambiant_music = pygame.mixer.music.load("data/sounds/musics/ambiant.mp3")
 pygame.mixer.music.play(-1)
 #-------------------------------TEMP CODE END---------------------------------#
+
+Grass = 0
 
 #Game Loop
 while 1:
@@ -124,6 +126,9 @@ while 1:
     #Tile_rects is a list of all tile that have collision
     tile_rects = []
 
+    #Tile_blit is a list of all tile that was blit on the Player
+    tile_blit = []
+
     #Render Distance Default Value (5,7)
     for y in range(5):
         for x in range(7):
@@ -136,8 +141,21 @@ while 1:
                 pos_x = tile[0]*TILE_SIZE-scroll[0]
                 pos_y = tile[1]*TILE_SIZE-scroll[1]
                 tile_data = game_map[target_chunk][tile]
+
                 if pos_x > -16 and pos_x < 600 and pos_y > -16 and pos_y < 400: #Be sure that The tile is on the Screen
-                    display.blit(tile_database[tile_data["type"]],(pos_x,pos_y)) #Blit the tile with type
+                    if tile_blockstates[tile_data["type"]]["special_blit"] == True:
+                        if tile_data["type"] == "plant":
+                            display.blit(tile_database["plant"],(pos_x,pos_y))
+                            attribute = tile_data["attribute"]
+                            for plant in range(len(attribute["plants_type"])):
+                                img = tile_database[attribute["plants_type"][plant]]
+                                value = (Grass**3-Grass)*50
+                                img = pygame.transform.rotate(img,value)
+                                
+                                tile_blit.append((img,(pos_x+attribute["plants_pos"][plant],pos_y)))
+
+                    else:
+                        display.blit(tile_database[tile_data["type"]],(pos_x,pos_y)) #Blit the tile with type
                 if tile_blockstates[tile_data["type"]]["collision"] == True: #If collision
                     if pos_x > player_pos_x-TILE_SIZE-10 and pos_x < player_pos_x+TILE_SIZE and pos_y > player_pos_y-TILE_SIZE-10 and pos_y < player_pos_y+TILE_SIZE: #Check if the tile is nearby of the player 
                         rect = tile_blockstates[tile_data["type"]]["collision_rect"] #Get the Collision Size
@@ -152,6 +170,10 @@ while 1:
 
                 #TICK Function
                 tick.Tick(CHUNK_SIZE,game_map,tile,tile_data,tile_blockstates)
+
+    Grass+=0.02
+    if Grass >= 1:
+        Grass = 0
 
     #Add A tick
     tick.add_tick()
@@ -169,6 +191,12 @@ while 1:
     #Change Pos of the Player
     player.move(tile_rects)
     display.blit(player.get_image(),(player_pos_x,player_pos_y))
+
+    for tile in tile_blit:
+        display.blit(tile[0],tile[1])
+
+    if DEBUG_MODE:
+        pygame.draw.rect(display,(31, 97, 141 ),(player_pos_x,player_pos_y,player.rect.width,player.rect.height),1)
 
     light_display.fill((0,0,0))
 

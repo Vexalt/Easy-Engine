@@ -20,14 +20,20 @@ def generate_chunk(CHUNK_SIZE,x,y):
             if target_y > 8 - value: tile_type="dirt"
 
             elif target_y == 8 - value:
-                tile_type="grass"
-
-            elif target_y == 8 - value -1:
                 if random.randint(1,5) > 1:
                     tile_type="plant"
+                    attribute["plants_pos"] = []
+                    attribute["plants_type"] = []
+                    attribute["plants_rot"] = []
+                    size = random.randint(4,7)
+                    for plant in range(size):
+                        attribute["plants_pos"].append(plant*16//size)
+                        attribute["plants_rot"].append([0])
+                        attribute["plants_type"].append(random.choice(["plant_0","plant_1","plant_2","plant_3"]))
+
                 elif random.randint(1,3) == 1: 
                     tile_type="torch"
-
+            
             chunk_data[target_x,target_y] = {"type":tile_type,"attribute":attribute}
     return chunk_data
 

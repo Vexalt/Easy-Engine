@@ -16,6 +16,10 @@ def load_images(TILE_SIZE):
         for tile in json_text.keys():
             if not "collision_rect" in json_text[tile]:
                 json_text[tile]["collision_rect"] = [TILE_SIZE,TILE_SIZE,0,0]
+            if not "special_blit" in json_text[tile]:
+                json_text[tile]["special_blit"] = False
+            if not "background" in json_text[tile]:
+                json_text[tile]["background"] = True
             tile_blockstates[tile] = json_text[tile]
             images[tile] = json_text[tile]["path"]
 
@@ -23,11 +27,13 @@ def load_images(TILE_SIZE):
     for image_name in images.keys():
         if images[image_name] is not None:
             original_image = pygame.transform.smoothscale(pygame.image.load("data/images/"+images[image_name]).convert_alpha(),(TILE_SIZE,TILE_SIZE))
-            background = pygame.Surface((TILE_SIZE,TILE_SIZE))
-            background.fill((93, 173, 226))
-            background.blit(original_image,(0,0))
+            if tile_blockstates[image_name]["background"] is True:
+                background = pygame.Surface((TILE_SIZE,TILE_SIZE))
+                background.fill((93, 173, 226))
+                background.blit(original_image,(0,0))
 
-            tile_database[image_name] = background.convert()
+                tile_database[image_name] = background.convert()
+            else: tile_database[image_name] = original_image
 
         else:
             #The load Function an invisible "air" block
