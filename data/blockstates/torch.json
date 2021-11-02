@@ -1,7 +1,7 @@
 {
     "torch":{
         "collision":true,
-        "collision_rect":[5,17,5,3],
+        "collision_rect":[5,13,5,3],
         "path":"torch.png"
     }
 

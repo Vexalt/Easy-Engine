@@ -85,6 +85,9 @@ def get_tile_info(CHUNK_SIZE,game_map,tile_x,tile_y):
 
     return info
 
+def get_tile_with_pos(CHUNK_SIZE,game_map,tile_x,tile_y):
+    return game_map[str((tile_x)//CHUNK_SIZE)+";"+str(tile_y//CHUNK_SIZE)][(tile_x,tile_y)]
+
 class Player():
     def __init__(self,rect):
         #Movement Player Setup
@@ -147,6 +150,7 @@ class Player():
             self.air_timer += 1
 
         self.new_frame()
+
 
     def new_frame(self):
         self.frame += 1

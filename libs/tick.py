@@ -13,5 +13,5 @@ def Tick(CHUNK_SIZE,game_map,tile,tile_data,blockstates):
 def add_tick():
     global TICK
     TICK +=1
-    if TICK == 5:
+    if TICK == 80:
         TICK = 0

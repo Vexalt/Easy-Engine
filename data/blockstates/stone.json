@@ -1,0 +1,7 @@
+{
+    "stone":{
+        "collision":true,
+        "path":"stone.png"
+    }
+
+}
