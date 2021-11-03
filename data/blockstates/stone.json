@@ -1,7 +1,8 @@
 {
     "stone":{
         "collision":true,
-        "path":"stone.png"
+        "path":"stone.png",
+        "hardness":35
     }
 
 }

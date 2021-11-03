@@ -5,7 +5,7 @@ SEED = random.randint(-999999,999999)
 noise = OpenSimplex(SEED)
 random.seed(SEED)
 
-def generate_chunk(CHUNK_SIZE,x,y):
+def generate_chunk(CHUNK_SIZE,x,y,tile_blockstates):
     scale = 10
 
     chunk_data = {}
@@ -34,7 +34,7 @@ def generate_chunk(CHUNK_SIZE,x,y):
                 elif random.randint(1,3) == 1: 
                     tile_type="torch"
             
-            chunk_data[target_x,target_y] = {"type":tile_type,"attribute":attribute}
+            chunk_data[target_x,target_y] = {"type":tile_type,"attribute":attribute,"break":tile_blockstates[tile_type]["hardness"]}
     return chunk_data
 
 def get_seed():

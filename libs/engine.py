@@ -1,9 +1,9 @@
 #coding: UTF-8
 
-import pygame
+from random import randint
+import pygame, math
 from json import load
 from os import listdir
-
 
 def load_images(TILE_SIZE):
     tile_blockstates = {}
@@ -14,12 +14,18 @@ def load_images(TILE_SIZE):
         json.close()
 
         for tile in json_text.keys():
+            #Default Collision Rect
             if not "collision_rect" in json_text[tile]:
                 json_text[tile]["collision_rect"] = [TILE_SIZE,TILE_SIZE,0,0]
             if not "special_blit" in json_text[tile]:
                 json_text[tile]["special_blit"] = False
             if not "background" in json_text[tile]:
                 json_text[tile]["background"] = True
+            if not "item" in json_text[tile]:
+                json_text[tile]["item"] = None
+            if not "on_ground" in json_text[tile]:
+                json_text[tile]["on_ground"] = False
+
             tile_blockstates[tile] = json_text[tile]
             images[tile] = json_text[tile]["path"]
 
@@ -41,7 +47,15 @@ def load_images(TILE_SIZE):
             temp_img.fill((93, 173, 226))
             tile_database[image_name] = temp_img.convert()
 
-    return tile_database,tile_blockstates
+    #Load Tile Items with Tile_blockstates
+    tile_items = {}
+    for item in tile_blockstates.keys():
+        if tile_blockstates[item]["item"] is None:
+            tile_items[item] = tile_database[item]
+        else:
+            tile_items[item] = pygame.transform.smoothscale(pygame.image.load("data/items/"+tile_blockstates[item]["item"]).convert_alpha(),(TILE_SIZE,TILE_SIZE))
+
+    return tile_database,tile_blockstates,tile_items
 
 def collision_test(rect,tiles):
     hit_list = []
@@ -183,3 +197,78 @@ class Player():
 
     def get_sound(self,name):
         return self.sound_database[name]
+
+class Item(pygame.sprite.Sprite):
+    def __init__(self,tile_x,tile_y,type):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.transform.scale(type,(8,8))
+        self.rect = self.image.get_rect()
+
+        #For a Natural Effect
+        self.rect.x = tile_x+ randint(0,8)
+        self.rect.y = tile_y+ randint(0,8)
+
+        self.x = self.rect.x
+        self.y = self.rect.y
+        self.movement = -1
+
+    def update(self,game_map,CHUNK_SIZE,TILE_SIZE,scroll,player_pos,player_rect):
+        pos_x  = self.x-scroll[0]
+        pos_y  = self.y-scroll[1]
+
+        effect = (self.movement**3-self.movement)*5
+        self.movement += 0.02
+        if self.movement >= 0:
+            self.movement = -1
+        self.rect.x= pos_x
+        self.rect.y= pos_y + effect
+
+        #Collision Engine
+        self.tile_x,self.tile_y = ((self.rect.x+scroll[0])//TILE_SIZE , (self.rect.y+8+scroll[1])//TILE_SIZE)
+        info = get_tile_with_pos(CHUNK_SIZE,game_map,self.tile_x,self.tile_y)
+        if info["type"] == "air":
+            self.y += 1
+        
+        #Pythagore
+        total_distance = ((((player_pos.x - self.x )**2) + ((player_pos.y - self.y)**2) )**0.5)
+        if total_distance < 20:
+            self.x += (player_pos.x - self.x)//5
+            self.y += (player_pos.y - self.y)//5
+
+        if self.rect.colliderect(player_rect):
+            self.kill()
+            self.remove()
+
+class Particule(pygame.sprite.Sprite):
+    def __init__(self,tile_x,tile_y,color,time):
+        pygame.sprite.Sprite.__init__(self)
+
+        self.image = pygame.Surface((2,2),pygame.SRCALPHA)
+        self.rect = self.image.get_rect()
+        self.image.fill(color)
+
+        #For a Natural Effect
+        self.rect.x = tile_x+ randint(0,14)
+        self.rect.y = tile_y+ randint(0,14)
+
+        self.x = self.rect.x
+        self.y = self.rect.y
+        
+        self.max_time = time
+        self.time = time
+
+    def update(self,game_map,CHUNK_SIZE,TILE_SIZE,scroll,player_pos,player_rect):
+        pos_x  = self.x-scroll[0]
+        pos_y  = self.y-scroll[1]
+
+        self.rect.x= pos_x
+        self.rect.y= pos_y
+
+        self.y += 0.3
+        self.time -= 1
+        self.image.set_alpha((self.time*255)//self.max_time)
+
+        if self.time == 0:
+            self.kill()
+            self.remove()
+    

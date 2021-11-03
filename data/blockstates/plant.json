@@ -2,7 +2,11 @@
     "plant":{
         "collision":false,
         "path":null,
-        "special_blit":true
+        "special_blit":true,
+        "item":"plant.png",
+        "hardness":1,
+        "collision_rect":[16,10,0,6],
+        "on_ground":true
     },
     "plant_0":{
         "collision":false,

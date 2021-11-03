@@ -1,7 +1,8 @@
 {
     "air":{
         "collision":false,
-        "path":null
+        "path":null,
+        "hardness":1
     }
 
 }
