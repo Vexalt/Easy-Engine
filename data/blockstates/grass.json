@@ -1,7 +1,0 @@
-{
-    "grass":{
-        "collision":true,
-        "path":"grass.png"
-    }
-
-}

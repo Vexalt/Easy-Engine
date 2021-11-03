@@ -1,8 +1,0 @@
-{
-    "dirt":{
-        "collision":true,
-        "path":"dirt.png",
-        "hardness":15
-    }
-
-}
