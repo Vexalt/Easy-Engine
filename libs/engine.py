@@ -1,9 +1,13 @@
 #coding: UTF-8
 
-from random import randint
+from random import randint, uniform
 import pygame, math
 from json import load
 from os import listdir
+
+#Inventory
+global Inventory
+Inventory = [{},{},{},{},{},{},{},{},{},{}]
 
 def load_images(TILE_SIZE):
     tile_blockstates = {}
@@ -13,18 +17,16 @@ def load_images(TILE_SIZE):
         json_text = load(json)
         json.close()
 
-        for tile in json_text.keys():
+        for tile in json_text:
             #Default Collision Rect
-            if not "collision_rect" in json_text[tile]:
-                json_text[tile]["collision_rect"] = [TILE_SIZE,TILE_SIZE,0,0]
-            if not "special_blit" in json_text[tile]:
-                json_text[tile]["special_blit"] = False
-            if not "background" in json_text[tile]:
-                json_text[tile]["background"] = True
-            if not "item" in json_text[tile]:
-                json_text[tile]["item"] = None
-            if not "on_ground" in json_text[tile]:
-                json_text[tile]["on_ground"] = False
+            
+            json_text[tile].setdefault("collision_rect",[TILE_SIZE,TILE_SIZE,0,0])
+            json_text[tile].setdefault("special_blit",False)
+            json_text[tile].setdefault("background",True)
+            json_text[tile].setdefault("item",None)
+            json_text[tile].setdefault("on_ground",False)
+            json_text[tile].setdefault("on_himself",False)
+            json_text[tile].setdefault("reward",tile)
 
             tile_blockstates[tile] = json_text[tile]
             images[tile] = json_text[tile]["path"]
@@ -141,7 +143,7 @@ class Player():
         self.action = action_var
         self.frame = frame
 
-    def move(self,tile_rects):
+    def move(self,tile_rects,):
         self.movement = [0,0]
         if self.moving_right == True:
             self.movement[0] += self.speed_x
@@ -199,9 +201,10 @@ class Player():
         return self.sound_database[name]
 
 class Item(pygame.sprite.Sprite):
-    def __init__(self,tile_x,tile_y,type):
+    def __init__(self,tile_x,tile_y,type,img):
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.transform.scale(type,(8,8))
+        self.type = type
+        self.image = pygame.transform.scale(img,(8,8))
         self.rect = self.image.get_rect()
 
         #For a Natural Effect
@@ -212,7 +215,9 @@ class Item(pygame.sprite.Sprite):
         self.y = self.rect.y
         self.movement = -1
 
-    def update(self,game_map,CHUNK_SIZE,TILE_SIZE,scroll,player_pos,player_rect):
+        self.time = 2100 #30 Seconds
+
+    def update(self,game_map,CHUNK_SIZE,TILE_SIZE,scroll,player_pos,player_rect,tile_blockstates):
         pos_x  = self.x-scroll[0]
         pos_y  = self.y-scroll[1]
 
@@ -226,21 +231,39 @@ class Item(pygame.sprite.Sprite):
         #Collision Engine
         self.tile_x,self.tile_y = ((self.rect.x+scroll[0])//TILE_SIZE , (self.rect.y+8+scroll[1])//TILE_SIZE)
         info = get_tile_with_pos(CHUNK_SIZE,game_map,self.tile_x,self.tile_y)
-        if info["type"] == "air":
+        if tile_blockstates[info["type"]]["collision"] == False:
             self.y += 1
         
         #Pythagore
-        total_distance = ((((player_pos.x - self.x )**2) + ((player_pos.y - self.y)**2) )**0.5)
-        if total_distance < 20:
-            self.x += (player_pos.x - self.x)//5
-            self.y += (player_pos.y - self.y)//5
+        total_distance = ((((player_pos[0] - self.x )**2) + ((player_pos[1] - self.y)**2) )**0.5)
+        if total_distance < 25:
+            self.x += (player_pos[0] - self.x)/16
+            self.y += (player_pos[1] - self.y)/16
+
+        self.time -= 1
+
+        #Item Despawn
+        if self.time == 0:
+            self.kill()
+            self.remove()
 
         if self.rect.colliderect(player_rect):
             self.kill()
             self.remove()
+            
+            for slot in range(10):
+                if Inventory[slot] != {}:
+                    if Inventory[slot]["type"] == self.type and Inventory[slot]["number"] < 64:
+                            Inventory[slot]["number"] +=1
+                            break
+                if slot == 9:
+                    for slot in range(10):
+                        if Inventory[slot] == {}:
+                            Inventory[slot] = {"type":self.type,"number":1}
+                            break
 
 class Particule(pygame.sprite.Sprite):
-    def __init__(self,tile_x,tile_y,color,time):
+    def __init__(self,tile_x,tile_y,color,time,mode="normal"):
         pygame.sprite.Sprite.__init__(self)
 
         self.image = pygame.Surface((2,2),pygame.SRCALPHA)
@@ -248,8 +271,14 @@ class Particule(pygame.sprite.Sprite):
         self.image.fill(color)
 
         #For a Natural Effect
-        self.rect.x = tile_x+ randint(0,14)
-        self.rect.y = tile_y+ randint(0,14)
+        if mode=="normal":
+            self.rect.x = tile_x+ randint(0,14)
+            self.rect.y = tile_y+ randint(0,14)
+            self.movement = [0,0.1]
+        elif mode=="Explosion":
+            self.rect.x = tile_x
+            self.rect.y = tile_y
+            self.movement = [uniform(-0.5,0.5),uniform(-0.5,0.5)]
 
         self.x = self.rect.x
         self.y = self.rect.y
@@ -257,14 +286,16 @@ class Particule(pygame.sprite.Sprite):
         self.max_time = time
         self.time = time
 
-    def update(self,game_map,CHUNK_SIZE,TILE_SIZE,scroll,player_pos,player_rect):
+    def update(self,game_map,CHUNK_SIZE,TILE_SIZE,scroll,player_pos,player_rect,tile_blockstates):
         pos_x  = self.x-scroll[0]
         pos_y  = self.y-scroll[1]
 
         self.rect.x= pos_x
         self.rect.y= pos_y
 
-        self.y += 0.3
+        self.x += self.movement[0]
+        self.y += self.movement[1]
+
         self.time -= 1
         self.image.set_alpha((self.time*255)//self.max_time)
 

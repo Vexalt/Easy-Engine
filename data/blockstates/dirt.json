@@ -2,7 +2,8 @@
     "dirt":{
         "collision":true,
         "path":"dirt.png",
-        "hardness":15
+        "hardness":15,
+        "particule":[131, 77, 29]
     }
 
 }

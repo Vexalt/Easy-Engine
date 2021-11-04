@@ -2,7 +2,8 @@
     "stone":{
         "collision":true,
         "path":"stone.png",
-        "hardness":35
+        "hardness":35,
+        "particule":[154, 154, 154]
     }
 
 }

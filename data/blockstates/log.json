@@ -1,0 +1,11 @@
+{
+    "log":{
+        "collision":false,
+        "path":"log.png",
+        "hardness":25,
+        "particule":[131, 87, 29],
+        "on_ground":true,
+        "on_himself":true
+    }
+
+}

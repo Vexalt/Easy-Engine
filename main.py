@@ -30,7 +30,6 @@ pygame.display.set_icon(pygame.image.load("icon.png"))
 WINDOW_SIZE = (600,400)
 MONITOR_RESOLUTION = (pygame.display.Info().current_w,pygame.display.Info().current_h)
 fullscreen = False
-mousedown = False
 
 #Initiate the window
 screen = pygame.display.set_mode(WINDOW_SIZE,RESIZABLE|DOUBLEBUF|SCALED)
@@ -64,6 +63,8 @@ for break_image in reversed(range(1,11)):
     pygame.draw.rect(img,(255,255,255,0),(0,0,82,82),1)
     break_database.append(pygame.transform.scale(img,(TILE_SIZE,TILE_SIZE)))
 
+#Cursor
+mousedown = [False,False]
 REGENERATE_DAMAGE_BLOCK_TIME = 0.1
 Break_Speed = 1
 
@@ -72,6 +73,7 @@ light_velocity = -1
 
 #Selector Number
 Toolbar = 0
+Sysfont = pygame.font.SysFont(None,15)
 
 #Entity List
 Entity = pygame.sprite.Group()
@@ -80,8 +82,11 @@ Entity = pygame.sprite.Group()
 myfont = pygame.font.Font('data/fonts/font.ttf', 10)
 
 ambiant_music = pygame.mixer.music.load("data/sounds/musics/ambiant.mp3")
-pygame.mixer.music.play(-1)
+#pygame.mixer.music.play(-1)
 #-------------------------------TEMP CODE END---------------------------------#
+
+#To do Tile
+To_do = []
 
 #Game Loop
 while 1:
@@ -128,9 +133,11 @@ while 1:
             if event.key == K_LEFT:
                 player.moving_left = False
         elif event.type == MOUSEBUTTONDOWN:
-            if event.button == 1: mousedown = True
+            if event.button == 1: mousedown[1] = True
+            elif event.button == 3: mousedown[0] = True
         elif event.type == MOUSEBUTTONUP:
-            mousedown = False
+            if event.button == 1: mousedown[1] = False
+            elif event.button == 3: mousedown[0] = False
 
     #Position Calculator
     true_scroll[0] += (player.rect.x-true_scroll[0]-225)/20
@@ -144,7 +151,7 @@ while 1:
     player_pos_y  = player.rect.y-scroll[1]
 
     #Tile_light is a list of all tile that produce light
-    tile_light = [((player_pos_x,player_pos_y),0.7,(0,0,0))]
+    tile_light = [((player_pos_x,player_pos_y),0.85,(0,0,0))]
     #Tile_rects is a list of all tile that have collision
     tile_rects = []
     #Tile_blit is a list of all tile that was blit on the Player
@@ -157,7 +164,8 @@ while 1:
             target_y = y - 1 + int(round(scroll[1]/(CHUNK_SIZE*TILE_SIZE)))
             target_chunk = str(target_x) + ';' + str(target_y)
             if target_chunk not in game_map:
-                game_map[target_chunk] = gen.generate_chunk(CHUNK_SIZE,target_x,target_y,tile_blockstates)
+                game_map[target_chunk],actions = gen.generate_chunk(CHUNK_SIZE,target_x,target_y,tile_blockstates)
+                To_do = [*To_do , *actions]
             for tile in game_map[target_chunk]:
                 pos_x = tile[0]*TILE_SIZE-scroll[0]
                 pos_y = tile[1]*TILE_SIZE-scroll[1]
@@ -170,17 +178,17 @@ while 1:
                         if tile_data["type"] == "plant":
                             attribute = tile_data["attribute"]
                             display.blit(tile_database["plant"],(pos_x,pos_y))
-                            for plant in range(len(attribute["type"])):
-                                img = tile_database[attribute["type"][plant]]
+                            for plant,value in enumerate(attribute["type"]):
+                                img = tile_database[value]
                                 tile_blit.append((img,(pos_x+attribute["pos"][plant],pos_y)))
                                 if tick.TICK % 20 ==  0:
-                                    if attribute["type"][plant] == "plant_0":
+                                    if value == "plant_0":
                                         tile_data["attribute"]["type"][plant] = "plant_2"
-                                    elif attribute["type"][plant] == "plant_1":
+                                    elif value == "plant_1":
                                         tile_data["attribute"]["type"][plant] = "plant_3"
-                                    elif attribute["type"][plant] == "plant_3":
+                                    elif value == "plant_3":
                                         tile_data["attribute"]["type"][plant] = "plant_1"
-                                    elif attribute["type"][plant] == "plant_2":
+                                    elif value == "plant_2":
                                         tile_data["attribute"]["type"][plant] = "plant_0"
             #~~~~-------------------Special Blit Code-------------------~~~~#
 
@@ -213,6 +221,14 @@ while 1:
                 #TICK Function
                 tick.Tick(CHUNK_SIZE,game_map,tile,tile_data,tile_blockstates,Entity,tile_items)
 
+
+    #Try to execute all actions
+    for action in To_do:
+        try:
+            game_map[str((action["x"])//CHUNK_SIZE)+";"+str(action["y"]//CHUNK_SIZE)][(action["x"],action["y"])] = gen.create_block(action["type"],tile_blockstates)
+            To_do.remove(action)
+        except KeyError: pass
+
     #Add A tick
     tick.add_tick()
 
@@ -240,8 +256,15 @@ while 1:
         pygame.draw.rect(display,(31, 97, 141 ),true_player_rect,1)
 
     #Entity Engine
-    Entity.update(game_map,CHUNK_SIZE,TILE_SIZE,scroll,player.rect,true_player_rect)
+    Entity.update(game_map,CHUNK_SIZE,TILE_SIZE,scroll,player.rect.center,true_player_rect,tile_blockstates)
     Entity.draw(display)
+
+    #Particule of the Player
+    tile_player_x = player.rect.x//TILE_SIZE
+    tile_player_y = player.rect.y//TILE_SIZE
+    info = e.get_tile_with_pos(CHUNK_SIZE,game_map,tile_player_x,tile_player_y+1)
+    if tile_blockstates[info["type"]]["collision"] == True and player.movement[0] != 0:
+        Entity.add(e.Particule(player.rect.centerx,player.rect.y+12,tile_blockstates[info["type"]]["particule"],20,mode="Explosion"))
 
     #Light Engine
     light_display.fill((0,0,0))
@@ -266,20 +289,32 @@ while 1:
     #Get Tile rect
     info = e.get_tile_with_pos(CHUNK_SIZE,game_map,original_pos[0],original_pos[1])
     rect = tile_blockstates[info["type"]]["collision_rect"]
-    pygame.draw.rect(display,(255,255,255),(pos[0]+rect[2],pos[1]+rect[3],rect[0]+1,rect[1]),1)
+    
+    tile_rect = (pos[0]+rect[2],pos[1]+rect[3],rect[0]+1,rect[1])
+    if pygame.Rect(tile_rect).collidepoint(pygame_pos): pygame.draw.rect(display,(255,255,255),tile_rect,1)
+    else: pygame.draw.rect(display,(255,255,255),(pos[0],pos[1],16,16),1)
     
     #On Right Click = Destroy
-    if mousedown and info["type"] != "air":
+    if mousedown[1] and info["type"] != "air":
 
-        #Get Tile
-        tile = e.get_tile_with_pos(CHUNK_SIZE,game_map,original_pos[0],original_pos[1])
         #Try to Break the Block
         if info["break"] > 0:
-            tile["break"] -= Break_Speed
-        else:
-            Entity.add(e.Item(original_pos[0]*TILE_SIZE,original_pos[1]*TILE_SIZE,tile_items[info["type"]]))
-            tile["break"] = tile_blockstates["air"]["hardness"]
-            tile["type"] = "air"
+            info["break"] -= Break_Speed
+        if info["break"] <= 0:
+            reward = tile_blockstates[info["type"]]["reward"]
+            if reward:
+                Entity.add(e.Item(original_pos[0]*TILE_SIZE,original_pos[1]*TILE_SIZE,reward,tile_items[reward]))
+            info["break"] = tile_blockstates["air"]["hardness"]
+            info["type"] = "air"
+
+    elif mousedown[0] and info["type"] == "air":
+
+        #Try to Place the Block
+        if e.Inventory[Toolbar] != {}:
+            game_map[str((original_pos[0])//CHUNK_SIZE)+";"+str(original_pos[1]//CHUNK_SIZE)][(original_pos[0],original_pos[1])] = gen.create_block(e.Inventory[Toolbar]["type"],tile_blockstates)
+            e.Inventory[Toolbar]["number"] -= 1
+            if e.Inventory[Toolbar]["number"] == 0:
+                e.Inventory[Toolbar] = {}
 
     #Toolbar
     try: tool_image = tool_image,tool_image_focus = tool_image_focus
@@ -287,13 +322,22 @@ while 1:
         tool_image = pygame.image.load("data/menu/toolbar.png").convert_alpha()
         tool_image_focus = pygame.image.load("data/menu/toolbar_focus.png").convert_alpha()
 
+    #Inventory Blitting
     start = (WINDOW_SIZE[0] - (tool_image.get_width() * 10))//2
-    for tool in range(10):
-        if tool == Toolbar:display.blit(tool_image_focus,(start+tool*tool_image.get_width(),365))
-        else:display.blit(tool_image,(start+tool*tool_image.get_width(),365))
+    for slot in range(10):
+        if slot == Toolbar:display.blit(tool_image_focus,(start+slot*tool_image.get_width(),365))
+        else:display.blit(tool_image,(start+slot*tool_image.get_width(),365))
+
+        if e.Inventory[slot] != {}:
+            display.blit(tile_items[e.Inventory[slot]["type"]],(start+slot*tool_image.get_width()+4,370))
+            text = str(e.Inventory[slot]["number"])
+            if len(text) > 1:
+                display.blit(Sysfont.render(str(e.Inventory[slot]["number"]),1,(255,255,255)),(start+slot*tool_image.get_width()+10,377))
+            else : display.blit(Sysfont.render(str(e.Inventory[slot]["number"]),1,(255,255,255)),(start+slot*tool_image.get_width()+15,377))
 
     #Text Blitting
-    display.blit(myfont.render("Easy Engine Version 4.0 - "+str(round(clock.get_fps())),False, (255,255,255)),(0,0))
+    fps = round(clock.get_fps())
+    display.blit(myfont.render(f"Easy Engine Version 4.0 - {fps}",False, (255,255,255)),(0,0))
 
     #Pygame End
     screen.blit(display,(0,0))

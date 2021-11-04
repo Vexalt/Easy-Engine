@@ -1,0 +1,10 @@
+{
+    "leaves":{
+        "collision":false,
+        "path":"leaves.png",
+        "hardness":10,
+        "background":true,
+        "reward":null
+    }
+
+}
